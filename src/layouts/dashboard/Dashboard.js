@@ -1,7 +1,8 @@
 import React, { Component } from 'react'
-import PatientRecord from '../../../build/contracts/PatientRecord.json'
-import getWeb3 from '../../util/getWeb3'
+import Patient from '../../../build/Patient.json'
+import getWeb3 from '../../../src/util/web3'
 import ipfs from '../../ipfs'
+import factory from '../../util/factory'
 
 class Dashboard extends Component {
   constructor(props, { authData }) {
@@ -15,12 +16,13 @@ class Dashboard extends Component {
     }
   }
 
-  componentWillMount() {
+  componentDidMount() {
     // Get network provider and web3 instance.
     // See utils/getWeb3 for more info.
 
     getWeb3
     .then(results => {
+      console(results)
       this.setState({
         web3: results.web3
       })
@@ -32,6 +34,24 @@ class Dashboard extends Component {
     })
   }
 
+  static async getInitialProps() {
+    const patients = await factory.methods.getDeployedPatients().call()
+    return { patients }
+  }
+
+  renderPatients() {
+      if (this.props.patients){
+        const patientList = this.props.patients.map(address => {
+          return (
+            <div>{address}</div>
+          )
+      })
+        return patientList;
+      }
+    
+  }
+
+
   instantiateContract() {
     /*
     * SMART CONTRACT EXAMPLE
@@ -40,7 +60,7 @@ class Dashboard extends Component {
     * state management library, but for convenience I've placed them here.
     */
     const contract = require('truffle-contract')
-    const patientRecord = contract(PatientRecord)
+    const patientRecord = contract(Patient)
     patientRecord.setProvider(this.state.web3.currentProvider)
 
     //Get accounts.
@@ -74,9 +94,6 @@ class Dashboard extends Component {
         console.error(err)
         return
       } else {
-        console.log(this)
-        console.log(this.PatientRecord)
-        console.log(this.PatientRecordInstance)
         this.PatientRecordInstance.setPatientImage(result[0].hash, {from: this.state.account}).then((r) => {
           return this.setState({ patientImage: result[0].hash })
         })
@@ -100,6 +117,7 @@ class Dashboard extends Component {
                 <input type='submit'/>
               </form>
           </div>
+          {this.renderPatients()}
         </div>
       </main>
     )
