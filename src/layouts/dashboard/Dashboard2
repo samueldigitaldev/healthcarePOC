@@ -1,0 +1,118 @@
+import React, { Component } from 'react'
+import Patient from '../../../build/Patient.json'
+import web3 from '../../../src/util/web3'
+import ipfs from '../../ipfs'
+import factory from '../../util/factory'
+
+class Dashboard extends Component {
+  constructor(props, { authData }) {
+    super(props)
+    this.state = {
+      buffer: null,
+      patientImage: '',
+      account: null,
+      authData: this.props
+    }
+  }
+
+  componentDidMount() {
+    const contract = require('truffle-contract')
+    const patientRecord = contract(Patient)
+    patientRecord.setProvider(web3.currentProvider)
+    //Get accounts.
+    web3.eth.getAccounts((error, accounts) => {
+      console.log(accounts)
+      patientRecord.deployed().then((instance) => {
+        this.PatientRecordInstance = instance
+        this.setState({ account: accounts[0] })
+        // Get the value from the contract to prove it worked.
+        return this.PatientRecordInstance.getPatientImage.call(accounts[0])
+      }).then((patientImage) => {
+        // Update state with the result.
+        return this.setState({ patientImage })
+      })
+    })
+  }
+
+  instantiateContract() {
+    const contract = require('truffle-contract')
+    const patientRecord = contract(Patient)
+    patientRecord.setProvider(web3.currentProvider)
+
+    //Get accounts.
+    web3.eth.getAccounts((error, accounts) => {
+      patientRecord.deployed().then((instance) => {
+        this.PatientRecordInstance = instance
+        this.setState({ account: accounts[0] })
+        // Get the value from the contract to prove it worked.
+        return this.PatientRecordInstance.getPatientImage.call(accounts[0])
+      }).then((patientImage) => {
+        // Update state with the result.
+        return this.setState({ patientImage })
+      })
+    })
+  }
+
+
+
+  renderPatients() {
+      if (this.props.patients){
+        const patientList = this.props.patients.map(address => {
+          return (
+            <div>{address}</div>
+          )
+      })
+        return patientList;
+      }
+    
+  }
+
+
+  captureFile = (e) => {
+    e.preventDefault()
+    const file = e.target.files[0]
+    const reader = new window.FileReader()
+    reader.readAsArrayBuffer(file)
+    reader.onloadend = () => {
+      this.setState({buffer: Buffer(reader.result) })
+    }
+
+  }
+  onSubmit = (e) => {
+    e.preventDefault()
+    ipfs.files.add(this.state.buffer, (err, result) => {
+      if (err) {
+        console.error(err)
+        return
+      } else {
+        this.PatientRecordInstance.setPatientImage(result[0].hash, {from: this.state.account}).then((r) => {
+          return this.setState({ patientImage: result[0].hash })
+        })
+      }
+    })
+  }
+
+
+  render() {
+    return(
+      <main className="container">
+        <div className="pure-g">
+          <div className="pure-u-1-1">
+            <h1>Dashboard</h1>
+            <p><strong>Hello {this.props.authData.name}!</strong> Please Review Your Health Records:</p>
+            <h1>Your Health Information</h1>
+              <img src={`https://ipfs.io/ipfs/${this.state.patientImage}`} alt="" height="300px" width="300px"/> 
+              <h2>Upload Image</h2>
+              <form onSubmit={this.onSubmit}>
+                <input type='file' onChange={this.captureFile} />
+                <input type='submit'/>
+              </form>
+          </div>
+          {this.renderPatients()}
+        </div>
+      </main>
+    )
+  }
+}
+
+export default Dashboard

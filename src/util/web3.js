@@ -5,6 +5,7 @@ let web3
 if(typeof window !== 'undefined' && window.web3 !== 'undefined') {
 //check if inside browser and if metamask has injected web3
     web3 = new Web3(window.web3.currentProvider)
+    console.log(web3)
 
 }else {
 //metamask not available - so we will use infura
@@ -13,6 +14,7 @@ if(typeof window !== 'undefined' && window.web3 !== 'undefined') {
         'https://rinkeby.infura.io/Ng5NLQIo99KoqJDegRmw'
     )
     web3 = new Web3(provider)
+    console.log(web3)
 }
 
 export default web3
